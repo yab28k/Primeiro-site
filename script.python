@@ -1,0 +1,57 @@
+import smtplib
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from email.mime.base import MIMEBase
+from email import encoders
+import os
+from datetime import datetime
+
+# Configurações do e-mail
+SMTP_SERVER = 'smtp.example.com'  # Altere para o servidor SMTP do seu provedor
+SMTP_PORT = 587  # Porta comum para TLS
+EMAIL_ADDRESS = 'seu-email@example.com'
+EMAIL_PASSWORD = 'sua-senha'
+
+def send_email(subject, body, to_email, attachment_path=None):
+    msg = MIMEMultipart()
+    msg['From'] = EMAIL_ADDRESS
+    msg['To'] = to_email
+    msg['Subject'] = subject
+
+    # Adiciona o corpo do e-mail
+    msg.attach(MIMEText(body, 'plain'))
+
+    # Adiciona o anexo, se houver
+    if attachment_path:
+        try:
+            with open(attachment_path, 'rb') as attachment:
+                part = MIMEBase('application', 'octet-stream')
+                part.set_payload(attachment.read())
+                encoders.encode_base64(part)
+                part.add_header(
+                    'Content-Disposition',
+                    f'attachment; filename={os.path.basename(attachment_path)}',
+                )
+                msg.attach(part)
+        except FileNotFoundError:
+            print(f"Arquivo {attachment_path} não encontrado.")
+
+    try:
+        with smtplib.SMTP(SMTP_SERVER, SMTP_PORT) as server:
+            server.starttls()  # Inicia a criptografia TLS
+            server.login(EMAIL_ADDRESS, EMAIL_PASSWORD)
+            server.send_message(msg)
+            print("E-mail enviado com sucesso!")
+    except Exception as e:
+        print(f"Erro ao enviar e-mail: {e}")
+
+if __name__ == "__main__":
+    # Configura o relatório e destinatário
+    today_date = datetime.now().strftime('%Y-%m-%d')
+    subject = f'Relatório Diário - {today_date}'
+    body = 'Aqui está o relatório diário em anexo.'
+    to_email = 'destinatario@example.com'
+    attachment_path = f'/caminho/para/seu/relatorio_{today_date}.pdf'
+
+    # Envia o e-mail
+    send_email(subject, body, to_email, attachment_path)
